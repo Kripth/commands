@@ -24,16 +24,14 @@ import std.traits : hasUDA, getUDAs;
 import std.typetuple : TypeTuple;
 
 import sel.plugin;
-import sel.entity.effect : Effect;
+import sel.entity.effect : Effect, Effects;
 import sel.entity.living : Living;
 import sel.event.world.damage : EntityDamageByCommandEvent;
 import sel.util.command : Command;
 
-static import sul.effects;
+alias Commands = TypeTuple!("clear", "deop", "effect", "gamemode", "help", "kick", "kill", "me", "op", "say", "seed", "stop", "tell", "time", "toggledownfall", "transfer", "transferserver", "world", "worlds");
 
-alias Available = TypeTuple!("clear", "deop", "effect", "gamemode", "help", "kick", "kill", "me", "op", "say", "seed", "stop", "tell", "time", "toggledownfall", "transfer", "transferserver", "world", "worlds");
-
-class Commands {
+class Main {
 
 	@command("test") test(CommandSender sender, Position position) {
 		sender.sendMessage(position.from(sender.startingPosition).toString());
@@ -42,7 +40,7 @@ class Commands {
 	@start load() {
 		if(!exists("plugins.json")) {
 			string[] file;
-			foreach(immutable command ; Available) {
+			foreach(immutable command ; Commands) {
 				mixin("alias C = " ~ command ~ "0;");
 				static if(hasUDA!(C, description)) {
 					immutable description = getUDAs!(C, description)[0].description;
@@ -54,17 +52,12 @@ class Commands {
 				} else {
 					string[] a;
 				}
-				file ~= ("\t\"" ~ command ~ "\": {" ~ newline ~
-						"\t\t\"enabled\": true," ~ newline ~
-						"\t\t\"description\": " ~ JSONValue(description).toString() ~ "," ~ newline ~
-						(a.length ? "\t\t\"aliases\": " ~ to!string(a) ~ "," ~ newline : "") ~
-						"\t\t\"op\": " ~ to!string(hasUDA!(C, op)) ~ "," ~ newline ~
-						"\t\t\"hidden\": " ~ to!string(hasUDA!(C, hidden)) ~ newline ~ "\t}");
+				file ~= createJSON(command, description, a, hasUDA!(C, op), hasUDA!(C, hidden));
 			}
 			write("plugins.json", "{" ~ newline ~ file.join("," ~ newline) ~ newline ~ "}" ~ newline);
 		}
 		auto json = parseJSON(cast(string)read("plugins.json"));
-		foreach(immutable command ; Available) {
+		foreach(immutable command ; Commands) {
 			auto c = command in json;
 			if(c) {
 				auto _enabled = "enabled" in *c;
@@ -86,6 +79,15 @@ class Commands {
 				}
 			}
 		}
+	}
+	
+	private string createJSON(string command, string description, string[] aliases, bool op, bool hidden) {
+		return ("\t\"" ~ command ~ "\": {" ~ newline ~
+				"\t\t\"enabled\": true," ~ newline ~
+				"\t\t\"description\": " ~ JSONValue(description).toString() ~ "," ~ newline ~
+				(aliases.length ? "\t\t\"aliases\": " ~ to!string(aliases) ~ "," ~ newline : "") ~
+				"\t\t\"op\": " ~ to!string(op) ~ "," ~ newline ~
+				"\t\t\"hidden\": " ~ to!string(hidden) ~ newline ~ "\t}");
 	}
 	
 	private void register(string command, size_t index)(bool op, bool hidden, string description, string[] aliases) {
@@ -118,21 +120,8 @@ class Commands {
 		if(failed.length) sender.sendMessage("{commands.deop.failed}", [failed.join(", ")]);
 		if(opped.length) sender.sendMessage("{commands.deop.success}", [opped.join(", ")]);
 	}
-	
-	enum Clear { clear }
-	
-	mixin("enum Effects : sul.effects.Effect { " ~ snakeCaseEffects() ~ " }");
-	
-	private static string snakeCaseEffects() {
-		string[] ret;
-		foreach(member ; __traits(allMembers, sul.effects.Effects)) {
-			mixin("immutable name = sul.effects.Effects." ~ member ~ ".name;");
-			ret ~= name.replace(" ", "_") ~ "=sul.effects.Effects." ~ member;
-		}
-		return ret.join(",");
-	}
 
-	@op effect0(CommandSender sender, Target target, Effects effect, tick_t duration=30, ubyte level=0) {
+	@op effect0(CommandSender sender, Target target, SnakeCaseEnum!Effects effect, tick_t duration=30, ubyte level=0) {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
@@ -152,7 +141,7 @@ class Commands {
 		}
 	}
 	
-	@op effect2(CommandSender sender, Target target, SingleEnum!"clear" clear, Effects effect) {
+	@op effect2(CommandSender sender, Target target, SingleEnum!"clear" clear, SnakeCaseEnum!Effects effect) {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {

@@ -1,16 +1,10 @@
 {
-
-	"api": 2,
-
-	"priority": "medium",
-
 	"name": "Commands",
 	"authors": ["Kripth"],
-	"version": "2.0.0",
-
 	"keywords": ["commands", "command", "help", "vanilla"],
 	"description": "Useful commands for players, operators and console",
-
-	"main": "commands.Commands"
-
+	"api": 2,
+	"priority": 5,
+	"target": "node",
+	"main": "commands.Main"
 }
