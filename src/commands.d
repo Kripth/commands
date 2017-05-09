@@ -23,11 +23,14 @@ import std.string;
 import std.traits : hasUDA, getUDAs;
 import std.typetuple : TypeTuple;
 
-import sel.plugin;
+import sel.node.plugin;
+
 import sel.entity.effect : Effect, Effects;
 import sel.entity.living : Living;
 import sel.event.world.damage : EntityDamageByCommandEvent;
+import sel.player.player : InputMode;
 import sel.util.command : Command;
+import sel.world.rules : Gamemode;
 
 alias Commands = TypeTuple!("clear", "deop", "effect", "gamemode", "help", "kick", "kill", "me", "op", "say", "seed", "stop", "tell", "time", "toggledownfall", "transfer", "transferserver", "world", "worlds");
 
