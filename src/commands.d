@@ -36,10 +36,6 @@ alias Commands = TypeTuple!("clear", "deop", "effect", "gamemode", "help", "kick
 
 class Main {
 
-	@command("test") test(CommandSender sender, Position position) {
-		sender.sendMessage(position.from(sender.startingPosition).toString());
-	}
-
 	@start load() {
 		if(!exists("plugins.json")) {
 			string[] file;
@@ -114,14 +110,14 @@ class Main {
 		foreach(player ; players) {
 			if(player.op) {
 				player.op = false;
-				player.sendMessage("{commands.deop.message}");
+				player.sendMessage(pocket_t("commands.deop.message"));
 				opped ~= player.name;
 			} else {
 				failed ~= player.name;
 			}
 		}
-		if(failed.length) sender.sendMessage("{commands.deop.failed}", [failed.join(", ")]);
-		if(opped.length) sender.sendMessage("{commands.deop.success}", [opped.join(", ")]);
+		if(failed.length) sender.sendMessage(Text.red, translation("commands.deop.failed"), failed.join(", "));
+		if(opped.length) sender.sendMessage(translation("commands.deop.success"), opped.join(", "));
 	}
 
 	@op effect0(CommandSender sender, Target target, SnakeCaseEnum!Effects effect, tick_t duration=30, ubyte level=0) {
@@ -129,7 +125,7 @@ class Main {
 			auto living = cast(Living)entity;
 			if(living) {
 				living.addEffect(Effect.fromId(effect, living, level, duration));
-				sender.sendMessage("{commands.effect.success}", [effect.name, to!string(level), entity.name, to!string(duration)]);
+				sender.sendMessage(pocket_t("commands.effect.success"), effect.name, level, entity.name, duration);
 			}
 		}
 	}
@@ -138,8 +134,8 @@ class Main {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
-				if(living.clearEffects()) sender.sendMessage("{commands.effect.success.removed.all}", [entity.name]);
-				else sender.sendMessage("{commands.effect.failure.notActive.all}", [entity.name]);
+				if(living.clearEffects()) sender.sendMessage(translation("commands.effect.success.removed.all"), entity.name);
+				else sender.sendMessage(Text.red, translation("commands.effect.failure.notActive.all"), entity.name);
 			}
 		}
 	}
@@ -148,29 +144,29 @@ class Main {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
-				if(living.removeEffect(effect)) sender.sendMessage("{commands.effect.success.removed}", [effect.name, entity.name]);
-				else sender.sendMessage("{commands.effect.failure.notActive}", [effect.name, entity.name]);
+				if(living.removeEffect(effect)) sender.sendMessage(translation("commands.effect.success.removed"), effect.name, entity.name);
+				else sender.sendMessage(Text.red, translation("commands.effect.failure.notActive"), effect.name, entity.name);
 			}
 		}
 	}
 	
 	@op @aliases("gm") gamemode0(Player sender, Gamemode gamemode) {
 		if(sender.gamemode != gamemode) sender.gamemode = gamemode;
-		sender.sendMessage("{commands.gamemode.success.self}", [gamemode.to!string]);
+		sender.sendMessage(translation("commands.gamemode.success.self"), gamemode);
 	}
 	
 	@op @aliases("gm") gamemode1(Player sender, int gamemode) {
 		if(gamemode >= 0 && gamemode <= 3) {
 			this.gamemode0(sender, cast(Gamemode)gamemode);
 		} else {
-			sender.sendMessage("{commands.gamemode.fail.invalid}", [to!string(gamemode)]);
+			sender.sendMessage(Text.red, pocket_t("commands.gamemode.fail.invalid"), gamemode);
 		}
 	}
 	
 	@op @aliases("gm") gamemode2(CommandSender sender, Player[] target, Gamemode gamemode) {
 		foreach(player ; target) {
 			player.gamemode = gamemode;
-			sender.sendMessage("{commands.gamemode.success.other}", [player.name, gamemode.to!string]);
+			sender.sendMessage(translation("commands.gamemode.success.other"), player.name, gamemode);
 		}
 	}
 	
@@ -178,7 +174,7 @@ class Main {
 		if(gamemode >= 0 && gamemode <= 3) {
 			this.gamemode2(sender, target, cast(Gamemode)gamemode);
 		} else {
-			sender.sendMessage("{commands.gamemode.fail.invalid}", [to!string(gamemode)]);
+			sender.sendMessage(Text.red, pocket_t("commands.gamemode.fail.invalid"), gamemode);
 		}
 	}
 	
@@ -192,15 +188,15 @@ class Main {
 			sort!((a, b) => a.command < b.command)(commands);
 			immutable pages = ceil(commands.length.to!float / 7); // commands.length should always be at least 1 (help command)
 			if(--page >= pages) page = 0;
-			string[] messages = [Text.darkGreen ~ "{commands.help.header}"];
-			string[] args = [to!string(page+1), to!string(pages)];
-			foreach(command ; commands[to!size_t(page)*7..min($, to!size_t(page+1)*7)]) {
+			sender.sendMessage(Text.darkGreen, translation("commands.help.header"), page+1, pages);
+			string[] messages;
+			foreach(command ; commands[page*7..min($, (page+1)*7)]) {
 				messages ~= (command.command ~ " " ~ this.formatArgs(command)[0]);
 			}
+			sender.sendMessage(messages.join("\n"));
 			if(player.inputMode == InputMode.keyboard) {
-				messages ~= (Text.green ~ "{commands.help.footer}");
+				sender.sendMessage(Text.green, translation("commands.help.footer"));
 			}
-			sender.sendMessage(messages.join("\n"), args);
 		} else if(cast(Server)sender) {
 			//TODO
 		} else {
@@ -211,9 +207,21 @@ class Main {
 	@aliases("?") help1(Player sender, string command) {
 		auto cmd = sender.commandByName(command);
 		if(cmd !is null) {
-			sender.sendMessage(Text.yellow ~ cmd.command ~ ":\n" ~ cmd.description ~ "\n" ~ Text.reset ~ "{commands.generic.usage.noparam}\n" ~ formatArgs(cmd).join("\n"));
+			string message = Text.yellow ~ cmd.command ~ ":";
+			if(cmd.description.length > 2 && cmd.description[0] == '{' && cmd.description[$-1] == '}') {
+				sender.sendMessage(message);
+				sender.sendMessage(Text.yellow, pocket_t(cmd.description[1..$-1]));
+			} else {
+				sender.sendMessage(message, "\n", cmd.description);
+			}
+			auto params = formatArgs(cmd);
+			foreach(ref param ; params) {
+				param = "- /" ~ command ~ " " ~ param;
+			}
+			sender.sendMessage(translation("commands.generic.usage"), "");
+			sender.sendMessage(params.join("\n"));
 		} else {
-			sender.sendMessage(Text.red ~ "{commands.generic.notFound}");
+			sender.sendMessage(Text.red, translation("commands.generic.notFound"));
 		}
 	}
 	
@@ -240,8 +248,8 @@ class Main {
 			player.kick(message);
 			kicked ~= player.name;
 		}
-		if(kicked.length) sender.sendMessage("{commands.kick.success" ~ (message.length ? ".reason" : "") ~ "}", [kicked.join(", "), message]);
-		else if(!target.input.startsWith("@")) sender.sendMessage(Text.red ~ "{commands.kick.not.found}", [target.input]);
+		if(kicked.length) sender.sendMessage(translation("commands.kick.success" ~ (message.length ? ".reason" : "")), kicked.join(", "), message);
+		else if(!target.input.startsWith("@")) sender.sendMessage(Text.red, translation("commands.generic.player.notFound", "commands.kick.not.found"), target.input);
 	}
 	
 	@op kill0(CommandSender sender, Target target) {
@@ -252,7 +260,7 @@ class Main {
 				if(entity.dead) killed ~= entity.name;
 			}
 		}
-		if(killed.length) sender.sendMessage("{commands.kill.successful}", [killed.join(", ")]);
+		if(killed.length) sender.sendMessage(translation("commands.kill.successful"), killed.join(", "));
 	}
 	
 	void me0(Player sender, string message) {
@@ -266,20 +274,20 @@ class Main {
 				failed ~= player.name;
 			} else {
 				player.op = true;
-				player.sendMessage("{commands.op.message}");
+				player.sendMessage(pocket_t("commands.op.message"));
 				opped ~= player.name;
 			}
 		}
-		if(failed.length) sender.sendMessage("{commands.op.failed}", [failed.join(", ")]);
-		if(opped.length) sender.sendMessage("{commands.op.success}", [opped.join(", ")]);
+		if(failed.length) sender.sendMessage(Text.red, translation("commands.op.failed"), failed.join(", "));
+		if(opped.length) sender.sendMessage(translation("commands.op.success"), opped.join(", "));
 	}
 
 	@op say0(CommandSender sender, string message) {
-		message = "{lightPurple}Server: " ~ message;
+		message = Text.lightPurple ~ "Server: " ~ message;
 		if(cast(WorldCommandSender)sender) {
 			(cast(WorldCommandSender)sender).world.broadcast(message);
-		} else if(cast(Server)sender) {
-			(cast(Server)sender).broadcast(message);
+		} else {
+			server.broadcast(message);
 		}
 	}
 	
@@ -288,7 +296,7 @@ class Main {
 	}
 	
 	@op stop0(CommandSender sender) {
-		sender.sendMessage("{commands.stop.start}");
+		sender.sendMessage(translation("commands.stop.start"));
 		server.shutdown();
 	}
 	
@@ -312,26 +320,26 @@ class Main {
 	
 	@op time0(WorldCommandSender sender, SingleEnum!"add" add, int amount) {
 		sender.world.time = sender.world.time + amount;
-		sender.sendMessage("{commands.time.added}", [to!string(amount)]);
+		sender.sendMessage(translation("commands.time.added"), amount);
 	}
 	
 	@op time1(WorldCommandSender sender, SingleEnum!"query" query, TimeQuery time) {
 		final switch(time) {
 			case TimeQuery.daytime:
-				sender.sendMessage("{commands.time.query.daytime}", [to!string(sender.world.time)]);
+				sender.sendMessage(pocket_t("commands.time.query.daytime"), sender.world.time);
 				break;
 			case TimeQuery.gametime:
-				sender.sendMessage("{commands.time.query.gametime}", [to!string(sender.world.ticks)]);
+				sender.sendMessage(pocket_t("commands.time.query.gametime"), sender.world.ticks);
 				break;
 			case TimeQuery.day:
-				sender.sendMessage("{commands.time.query.day}", [to!string(cast(uint)sender.world.ticks/24000)]);
+				sender.sendMessage(pocket_t("commands.time.query.day"), cast(uint)sender.world.ticks/24000);
 				break;
 		}
 	}
 	
 	@op time2(WorldCommandSender sender, SingleEnum!"set" set, int amount) {
 		sender.world.time = amount;
-		sender.sendMessage("{commands.time.set}", [to!string(amount)]);
+		sender.sendMessage(translation("commands.time.set"), sender.world.time);
 	}
 	
 	@op time3(WorldCommandSender sender, SingleEnum!"set" set, TimeString amount) {
@@ -340,6 +348,7 @@ class Main {
 	
 	@op toggledownfall0(WorldCommandSender sender) {
 		sender.world.downfall = !sender.world.downfall;
+		sender.sendMessage(translation("commands.downfall.success"));
 	}
 	
 	@op transfer0(CommandSender sender, Player[] player, string node) {
@@ -353,20 +362,20 @@ class Main {
 		foreach(p ; player) {
 			try {
 				p.transfer(ip, port);
-				sender.sendMessage("{commands.transferserver.successful}", [p.name]);
+				sender.sendMessage(pocket_t("commands.transferserver.successful"), p.name);
 			} catch(Exception) {}
 		}
 	}
 	
 	@op @description("Adds, removes or transfer a player to a world") world0(CommandSender sender, SingleEnum!"add" add, string name) {
 		server.addWorld(name);
-		sender.sendMessage("World '" ~ name ~ "' added");
+		sender.sendMessage("World '", name, "' added");
 	}
 	
 	@op world1(CommandSender sender, SingleEnum!"remove" remove, string world) {
 		auto worlds = server.worldsWithName(world);
 		foreach(w ; worlds) server.removeWorld(w);
-		sender.sendMessage("Removed " ~ to!string(worlds.length) ~ " world(s)");
+		sender.sendMessage("Removed ", worlds.length, " world(s)");
 	}
 	
 	@op world2(CommandSender sender, SingleEnum!"transfer" transfer, Player[] target, string world) {
@@ -377,9 +386,9 @@ class Main {
 				player.world = worlds[0];
 				names ~= player.name;
 			}
-			if(names.length) sender.sendMessage("Transferred " ~ names.join(", ") ~ " to " ~ world);
+			if(names.length) sender.sendMessage("Transferred ", names.join(", "), " to ", world);
 		} else {
-			sender.sendMessage("Cannot find world '" ~ world ~ "'");
+			sender.sendMessage("Cannot find world '", world, "'");
 		}
 	}
 	
@@ -401,10 +410,22 @@ class Main {
 
 	public @command("*") unknown(Player sender, arguments args) {
 		if(args.length && sender.commandByName(args[0]) !is null) {
-			sender.sendMessage("{red}{commands.generic.syntax}");
+			sender.sendMessage(Text.red, translation("commands.generic.syntax"));
 		} else {
-			sender.sendMessage(Text.red ~ "{commands.generic.notFound}");
+			sender.sendMessage(Text.red, translation("commands.generic.notFound"));
 		}
 	}
 
+}
+
+private Translation translation(string minecraft, string pocket) {
+	return Translation(pocket, minecraft, pocket);
+}
+
+private Translation translation(string message) {
+	return Translation(message, message, message);
+}
+
+private Translation pocket_t(string message) {
+	return Translation(message, "", message);
 }
