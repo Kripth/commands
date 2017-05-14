@@ -1,6 +1,7 @@
 // rdmd generate.d <mcpe-apk-location>
 module generate;
 
+import std.algorithm : sort;
 import std.file;
 import std.regex;
 import std.string;
@@ -13,7 +14,7 @@ enum end = ".lang";
 
 void main(string[] args) {
 
-	string[] commands;
+	string[] commands = ["generic"];
 	
 	foreach(line ; split(cast(string)read("../src/commands.d"), "\n")) {
 		line = line.strip;
@@ -35,7 +36,7 @@ void main(string[] args) {
 				if(line.startsWith("commands.")) {
 					immutable cmp = line[9..$];
 					foreach(command ; commands) {
-						if(cmp.startsWith(command ~ '.') || cmp.startsWith("generic.")) {
+						if(cmp.startsWith(command ~ '.')) {
 							line = line.strip;
 							if(line.endsWith("#")) line = line[0..$-1].strip;
 							string mx;
@@ -59,6 +60,7 @@ void main(string[] args) {
 					}
 				}
 			}
+			sort(file);
 			write(location[start.length..$], file.join("\n"));
 		}
 	}
