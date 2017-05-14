@@ -116,8 +116,8 @@ class Main {
 				failed ~= player.name;
 			}
 		}
-		if(failed.length) sender.sendMessage(Text.red, translation("commands.deop.failed"), failed.join(", "));
-		if(opped.length) sender.sendMessage(translation("commands.deop.success"), opped.join(", "));
+		if(failed.length) sender.sendMessage(Text.red, Translation.all("commands.deop.failed"), failed.join(", "));
+		if(opped.length) sender.sendMessage(Translation.all("commands.deop.success"), opped.join(", "));
 	}
 
 	@op effect0(CommandSender sender, Target target, SnakeCaseEnum!Effects effect, tick_t duration=30, ubyte level=0) {
@@ -134,8 +134,8 @@ class Main {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
-				if(living.clearEffects()) sender.sendMessage(translation("commands.effect.success.removed.all"), entity.name);
-				else sender.sendMessage(Text.red, translation("commands.effect.failure.notActive.all"), entity.name);
+				if(living.clearEffects()) sender.sendMessage(Translation.all("commands.effect.success.removed.all"), entity.name);
+				else sender.sendMessage(Text.red, Translation.all("commands.effect.failure.notActive.all"), entity.name);
 			}
 		}
 	}
@@ -144,15 +144,15 @@ class Main {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
-				if(living.removeEffect(effect)) sender.sendMessage(translation("commands.effect.success.removed"), effect.name, entity.name);
-				else sender.sendMessage(Text.red, translation("commands.effect.failure.notActive"), effect.name, entity.name);
+				if(living.removeEffect(effect)) sender.sendMessage(Translation.all("commands.effect.success.removed"), effect.name, entity.name);
+				else sender.sendMessage(Text.red, Translation.all("commands.effect.failure.notActive"), effect.name, entity.name);
 			}
 		}
 	}
 	
 	@op @aliases("gm") gamemode0(Player sender, Gamemode gamemode) {
 		if(sender.gamemode != gamemode) sender.gamemode = gamemode;
-		sender.sendMessage(translation("commands.gamemode.success.self"), gamemode);
+		sender.sendMessage(Translation.all("commands.gamemode.success.self"), gamemode);
 	}
 	
 	@op @aliases("gm") gamemode1(Player sender, int gamemode) {
@@ -166,7 +166,7 @@ class Main {
 	@op @aliases("gm") gamemode2(CommandSender sender, Player[] target, Gamemode gamemode) {
 		foreach(player ; target) {
 			player.gamemode = gamemode;
-			sender.sendMessage(translation("commands.gamemode.success.other"), player.name, gamemode);
+			sender.sendMessage(Translation.all("commands.gamemode.success.other"), player.name, gamemode);
 		}
 	}
 	
@@ -188,14 +188,14 @@ class Main {
 			sort!((a, b) => a.command < b.command)(commands);
 			immutable pages = ceil(commands.length.to!float / 7); // commands.length should always be at least 1 (help command)
 			if(--page >= pages) page = 0;
-			sender.sendMessage(Text.darkGreen, translation("commands.help.header"), page+1, pages);
+			sender.sendMessage(Text.darkGreen, Translation.all("commands.help.header"), page+1, pages);
 			string[] messages;
 			foreach(command ; commands[page*7..min($, (page+1)*7)]) {
 				messages ~= (command.command ~ " " ~ this.formatArgs(command)[0]);
 			}
 			sender.sendMessage(messages.join("\n"));
 			if(player.inputMode == InputMode.keyboard) {
-				sender.sendMessage(Text.green, translation("commands.help.footer"));
+				sender.sendMessage(Text.green, Translation.all("commands.help.footer"));
 			}
 		} else if(cast(Server)sender) {
 			//TODO
@@ -218,10 +218,10 @@ class Main {
 			foreach(ref param ; params) {
 				param = "- /" ~ command ~ " " ~ param;
 			}
-			sender.sendMessage(translation("commands.generic.usage"), "");
+			sender.sendMessage(Translation.all("commands.generic.usage"), "");
 			sender.sendMessage(params.join("\n"));
 		} else {
-			sender.sendMessage(Text.red, translation("commands.generic.notFound"));
+			sender.sendMessage(Text.red, Translation.all("commands.generic.notFound"));
 		}
 	}
 	
@@ -248,8 +248,8 @@ class Main {
 			player.kick(message);
 			kicked ~= player.name;
 		}
-		if(kicked.length) sender.sendMessage(translation("commands.kick.success" ~ (message.length ? ".reason" : "")), kicked.join(", "), message);
-		else if(!target.input.startsWith("@")) sender.sendMessage(Text.red, translation("commands.generic.player.notFound", "commands.kick.not.found"), target.input);
+		if(kicked.length) sender.sendMessage(Translation.all("commands.kick.success" ~ (message.length ? ".reason" : "")), kicked.join(", "), message);
+		else if(!target.input.startsWith("@")) sender.sendMessage(Text.red, Translation("commands.kick.notFound", "commands.generic.player.notFound", "commands.kick.not.found"), target.input);
 	}
 	
 	@op kill0(CommandSender sender, Target target) {
@@ -260,7 +260,7 @@ class Main {
 				if(entity.dead) killed ~= entity.name;
 			}
 		}
-		if(killed.length) sender.sendMessage(translation("commands.kill.successful"), killed.join(", "));
+		if(killed.length) sender.sendMessage(Translation.all("commands.kill.successful"), killed.join(", "));
 	}
 	
 	void me0(Player sender, string message) {
@@ -278,8 +278,8 @@ class Main {
 				opped ~= player.name;
 			}
 		}
-		if(failed.length) sender.sendMessage(Text.red, translation("commands.op.failed"), failed.join(", "));
-		if(opped.length) sender.sendMessage(translation("commands.op.success"), opped.join(", "));
+		if(failed.length) sender.sendMessage(Text.red, Translation.all("commands.op.failed"), failed.join(", "));
+		if(opped.length) sender.sendMessage(Translation.all("commands.op.success"), opped.join(", "));
 	}
 
 	@op say0(CommandSender sender, string message) {
@@ -296,7 +296,7 @@ class Main {
 	}
 	
 	@op stop0(CommandSender sender) {
-		sender.sendMessage(translation("commands.stop.start"));
+		sender.sendMessage(Translation.all("commands.stop.start"));
 		server.shutdown();
 	}
 	
@@ -320,7 +320,7 @@ class Main {
 	
 	@op time0(WorldCommandSender sender, SingleEnum!"add" add, int amount) {
 		sender.world.time = sender.world.time + amount;
-		sender.sendMessage(translation("commands.time.added"), amount);
+		sender.sendMessage(Translation.all("commands.time.added"), amount);
 	}
 	
 	@op time1(WorldCommandSender sender, SingleEnum!"query" query, TimeQuery time) {
@@ -339,7 +339,7 @@ class Main {
 	
 	@op time2(WorldCommandSender sender, SingleEnum!"set" set, int amount) {
 		sender.world.time = amount;
-		sender.sendMessage(translation("commands.time.set"), sender.world.time);
+		sender.sendMessage(Translation.all("commands.time.set"), sender.world.time);
 	}
 	
 	@op time3(WorldCommandSender sender, SingleEnum!"set" set, TimeString amount) {
@@ -348,7 +348,7 @@ class Main {
 	
 	@op toggledownfall0(WorldCommandSender sender) {
 		sender.world.downfall = !sender.world.downfall;
-		sender.sendMessage(translation("commands.downfall.success"));
+		sender.sendMessage(Translation.all("commands.downfall.success"));
 	}
 	
 	@op transfer0(CommandSender sender, Player[] player, string node) {
@@ -358,12 +358,17 @@ class Main {
 		}
 	}
 	
-	@aliases("ts") @op transferserver0(CommandSender sender, Player[] player, string ip, ushort port=19132) {
-		foreach(p ; player) {
-			try {
-				p.transfer(ip, port);
-				sender.sendMessage(pocket_t("commands.transferserver.successful"), p.name);
-			} catch(Exception) {}
+	@aliases("ts") @op transferserver0(CommandSender sender, Player[] player, string ip, int port=19132) {
+		ushort _port = cast(ushort)port;
+		if(port == _port) {
+			foreach(p ; player) {
+				try {
+					p.transfer(ip, _port);
+					sender.sendMessage(pocket_t("commands.transferserver.successful"), p.name);
+				} catch(Exception) {}
+			}
+		} else {
+			sender.sendMessage(pocket_t("commands.transferserver.invalid.port"));
 		}
 	}
 	
@@ -410,20 +415,12 @@ class Main {
 
 	public @command("*") unknown(Player sender, arguments args) {
 		if(args.length && sender.commandByName(args[0]) !is null) {
-			sender.sendMessage(Text.red, translation("commands.generic.syntax"));
+			sender.sendMessage(Text.red, Translation.all("commands.generic.syntax"));
 		} else {
-			sender.sendMessage(Text.red, translation("commands.generic.notFound"));
+			sender.sendMessage(Text.red, Translation.all("commands.generic.notFound"));
 		}
 	}
 
-}
-
-private Translation translation(string minecraft, string pocket) {
-	return Translation(pocket, minecraft, pocket);
-}
-
-private Translation translation(string message) {
-	return Translation(message, message, message);
 }
 
 private Translation pocket_t(string message) {
