@@ -7,12 +7,8 @@ d:
 env:
   SEL: master
 
-matrix:
-  include:
-    - {os: linux, d: dmd-2.073.2, env: ARCH="x86", addons: {apt: {packages: [[gcc-multilib]]}}}
-
 script:
-  - bash <(curl -s https://gist.githubusercontent.com/Kripth/0e449b92612192a106f137d3edbfcd03/raw/41ddf3ba7ef721be4f5b173b23f72a5f080fa898/test-sel-plugin.sh)
+  - bash <(curl -s https://gist.githubusercontent.com/Kripth/0e449b92612192a106f137d3edbfcd03/raw/b2e8dad1b7bd745d77ccf8fc8c0ca8ad5556de10/test-sel-plugin.sh)
 
 notifications:
   - email: false
