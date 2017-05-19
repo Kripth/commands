@@ -3,6 +3,7 @@ module generate;
 
 import std.algorithm : sort;
 import std.file;
+import std.json;
 import std.regex;
 import std.string;
 import std.zip;
@@ -14,17 +15,28 @@ enum end = ".lang";
 
 void main(string[] args) {
 
-	string[] commands = ["generic"];
+	string[] commands = ["generic", "players"];
 	
-	foreach(line ; split(cast(string)read("../src/commands.d"), "\n")) {
-		line = line.strip;
-		if(line.startsWith(commands_file)) {
-			foreach(command ; split(line[commands_file.length..$-2], ",")) {
-				command = command.strip;
-				if(command.length >= 2) commands ~= command[1..$-1];
+	void add(string command) {
+		string[] spl = command.split(" ");
+		commands ~= spl[0];
+		if(spl.length > 1) {
+			string ret = spl[0];
+			foreach(s ; spl[1..$]) {
+				ret ~= capitalize(s);
 			}
-			break;
+			commands ~= ret;
 		}
+	}
+	
+	auto settings = parseJSON(cast(string)read("../../../resources/commands/plugins.json"));
+	
+	foreach(string command, obj; settings.object) {
+		auto aliases = "aliases" in obj;
+		if(aliases) {
+			foreach(alias_ ; (*aliases).array) add(alias_.str);
+		}
+		add(command);
 	}
 	
 	auto apk = new ZipArchive(read(args[1]));
@@ -34,10 +46,10 @@ void main(string[] args) {
 			string[] file = ["## Automatically generated using Minecraft: Pocket Edition's language files."];
 			foreach(line ; split(cast(string)member.expandedData, "\n")) {
 				if(line.startsWith("commands.")) {
-					immutable cmp = line[9..$];
+					auto spl = line.split(".");
 					foreach(command ; commands) {
-						if(cmp.startsWith(command ~ '.')) {
-							line = line.strip;
+						if(spl[1] == command) {
+							line = spl.join(".").strip;
 							if(line.endsWith("#")) line = line[0..$-1].strip;
 							string mx;
 							for(size_t i=0; i<line.length; i++) {
