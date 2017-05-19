@@ -1,0 +1,18 @@
+language: d
+
+d:
+  - dmd-2.073.2
+  - ldc
+
+env:
+  SEL: master
+
+matrix:
+  include:
+    - {os: linux, d: dmd-2.073.2, env: ARCH="x86", addons: {apt: {packages: [[gcc-multilib]]}}}
+
+script:
+  - bash <(curl -s https://gist.githubusercontent.com/Kripth/0e449b92612192a106f137d3edbfcd03/raw/e052aa277f39ef88fade15546eea42a9fae4e6a9/test-sel-plugin.sh)
+
+notifications:
+  - email: false
