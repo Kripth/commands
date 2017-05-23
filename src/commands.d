@@ -158,7 +158,7 @@ class Main {
 		}
 	}
 	
-	void effect1(CommandSender sender, Target target, SingleEnum!"clear") {
+	void effect1(CommandSender sender, Target target, SingleEnum!"clear", clear) {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
@@ -168,7 +168,7 @@ class Main {
 		}
 	}
 	
-	void effect2(CommandSender sender, Target target, SingleEnum!"clear", SnakeCaseEnum!Effects effect) {
+	void effect2(CommandSender sender, Target target, SingleEnum!"clear" clear, SnakeCaseEnum!Effects effect) {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
