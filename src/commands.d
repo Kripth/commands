@@ -158,7 +158,7 @@ class Main {
 		}
 	}
 	
-	void effect1(CommandSender sender, Target target, SingleEnum!"clear", clear) {
+	void effect1(CommandSender sender, Target target, SingleEnum!"clear" clear) {
 		foreach(entity ; target.entities) {
 			auto living = cast(Living)entity;
 			if(living) {
